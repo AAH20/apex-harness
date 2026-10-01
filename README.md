@@ -68,13 +68,13 @@ flowchart TD
     CtxLedger[("Context Ledger")]
 
     %% External Systems
-    {{Laya["Laya Decision Engine<br/>~33ms, $0.00"]}}
-    {{AGS["ApexGraphSwarm<br/>Multi-Agent Orchestration"]}}
-    {{GRC["GRC_Claw<br/>ISO 42001 Governance"]}}
-    {{ULL["Apex_ULL<br/>C++20 + Rust + Python Kernels"]}}
-    {{DCC["Data Center Commander<br/>DC Lifecycle Management"]}}
-    {{Cognee["Cognee<br/>Graph Memory"]}}
-    {{Nerve["Nerve<br/>Supervision Engine"]}}
+    Laya{{"Laya Decision Engine<br/>~33ms, $0.00"}}
+    AGS{{"ApexGraphSwarm<br/>Multi-Agent Orchestration"}}
+    GRC{{"GRC_Claw<br/>ISO 42001 Governance"}}
+    ULL{{"Apex_ULL<br/>C++20 + Rust + Python Kernels"}}
+    DCC{{"Data Center Commander<br/>DC Lifecycle Management"}}
+    Cognee{{"Cognee<br/>Graph Memory"}}
+    Nerve{{"Nerve<br/>Supervision Engine"}}
 
     %% Flows
     Client --> API
