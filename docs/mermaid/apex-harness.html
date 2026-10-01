@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apex Harness | LLM-Agnostic Orchestration Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --bg-surface: #0f1422;
+      --bg-surface-elevated: #161e31;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(6, 182, 212, 0.3);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --cyan-glow: #06b6d4;
+      --purple-glow: #a855f7;
+      --emerald-glow: #10b981;
+      --amber-glow: #f59e0b;
+      --rose-glow: #f43f5e;
+      --blue-glow: #3b82f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    .ambient-bg {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(6, 182, 212, 0.07) 0%, transparent 40%),
+        radial-gradient(circle at 85% 25%, rgba(168, 85, 247, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+    }
+
+    .container { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 32px 24px 80px 24px; }
+
+    header { border-bottom: 1px solid var(--border-color); padding-bottom: 28px; margin-bottom: 32px; display: flex; flex-direction: column; gap: 16px; }
+
+    .badge-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.03); }
+    .badge.cyan { border-color: rgba(6, 182, 212, 0.3); color: var(--cyan-glow); background: rgba(6, 182, 212, 0.06); }
+    .badge.purple { border-color: rgba(168, 85, 247, 0.3); color: var(--purple-glow); background: rgba(168, 85, 247, 0.06); }
+    .badge.emerald { border-color: rgba(16, 185, 129, 0.3); color: var(--emerald-glow); background: rgba(16, 185, 129, 0.06); }
+    .badge.amber { border-color: rgba(245, 158, 11, 0.3); color: var(--amber-glow); background: rgba(245, 158, 11, 0.06); }
+
+    .header-title-row { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; }
+    h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-muted); font-size: 15px; max-width: 960px; margin-top: 6px; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px 20px; }
+    .stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; }
+    .stat-val { font-size: 26px; font-weight: 800; color: #fff; font-family: 'JetBrains Mono', monospace; }
+
+    .tab-nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 32px; border-bottom: 1px solid var(--border-color); }
+    .tab-btn { background: transparent; border: none; color: var(--text-muted); font-family: inherit; font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s ease; white-space: nowrap; }
+    .tab-btn:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.04); }
+    .tab-btn.active { color: #ffffff; background: var(--bg-surface-elevated); border: 1px solid var(--border-accent); box-shadow: 0 4px 14px rgba(6, 182, 212, 0.12); }
+
+    .panel { display: none; animation: fadeIn 0.3s ease; }
+    .panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .glass-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 14px; padding: 24px; margin-bottom: 24px; backdrop-filter: blur(12px); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4); }
+    .glass-card:hover { border-color: rgba(255, 255, 255, 0.15); }
+    .card-title { font-size: 18px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+
+    .mermaid-box { background: #090d16; border: 1px solid var(--border-color); border-radius: 12px; padding: 28px 20px; overflow-x: auto; text-align: center; margin: 16px 0; }
+
+    .info-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .info-row:last-child { border-bottom: none; }
+    .info-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+    .info-dot.cyan { background: var(--cyan-glow); }
+    .info-dot.purple { background: var(--purple-glow); }
+    .info-dot.emerald { background: var(--emerald-glow); }
+    .info-dot.amber { background: var(--amber-glow); }
+    .info-label { font-weight: 600; font-size: 14px; color: var(--text-main); }
+    .info-desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+    .tag-cyan { background: rgba(6, 182, 212, 0.12); color: var(--cyan-glow); }
+    .tag-purple { background: rgba(168, 85, 247, 0.12); color: var(--purple-glow); }
+    .tag-emerald { background: rgba(16, 185, 129, 0.12); color: var(--emerald-glow); }
+    .tag-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber-glow); }
+
+    .endpoint { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    .method { padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; min-width: 50px; text-align: center; }
+    .method-post { background: rgba(16, 185, 129, 0.15); color: var(--emerald-glow); }
+    .method-get { background: rgba(6, 182, 212, 0.15); color: var(--cyan-glow); }
+
+    footer { border-top: 1px solid var(--border-color); padding-top: 24px; margin-top: 60px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; color: var(--text-dim); font-size: 13px; }
+
+    @media (max-width: 768px) {
+      .container { padding: 20px 16px 60px 16px; }
+      h1 { font-size: 24px; }
+      .header-title-row { flex-direction: column; align-items: flex-start; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .tab-nav { gap: 4px; }
+      .tab-btn { padding: 10px 14px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-bg"></div>
+  <div class="container">
+
+    <header>
+      <div class="badge-bar">
+        <span class="badge cyan">LLM-Agnostic</span>
+        <span class="badge purple">120+ Projects</span>
+        <span class="badge emerald">Cost-Aware</span>
+        <span class="badge amber">Hierarchical</span>
+      </div>
+      <div class="header-title-row">
+        <div>
+          <h1>Apex Harness Architecture</h1>
+          <p class="subtitle">LLM-Agnostic Harness Engineering layer for Ahmed Hassan's (@AAH20) 120+ open-source projects. Hierarchical task distribution (Tier 0→1→2→3), cost-aware model routing via Laya (~33ms), Cognee graph memory, Nerve governance supervision, and FastAPI REST API with OAuth2/mTLS/RBAC.</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Agent Slots</div>
+        <div class="stat-val" style="color: var(--cyan-glow);">330</div>
+        <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">1 Director • 10 Orchestrators • 30 Squad Leaders • 289 Workers</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Routing Latency</div>
+        <div class="stat-val" style="color: var(--purple-glow);">~33ms</div>
+        <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Laya local CPU decision engine • $0.00 cost</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Model Tiers</div>
+        <div class="stat-val" style="color: var(--emerald-glow);">3</div>
+        <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Free (LongCat 2.5) • Budget (Codex) • Volume (Antigravity)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">API Endpoints</div>
+        <div class="stat-val" style="color: var(--amber-glow);">10+</div>
+        <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">FastAPI REST • OAuth2 + PKCE • mTLS • RBAC/ABAC</div>
+      </div>
+    </div>
+
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('tab-orchestration')">🏗️ Orchestration Architecture</button>
+      <button class="tab-btn" onclick="switchTab('tab-memory')">🧠 Memory & Context</button>
+      <button class="tab-btn" onclick="switchTab('tab-api')">🔌 API & Integrations</button>
+      <button class="tab-btn" onclick="switchTab('tab-governance')">📊 Cost & Governance</button>
+    </div>
+
+    <!-- TAB 1: Orchestration Architecture -->
+    <div id="tab-orchestration" class="panel active">
+      <div class="glass-card">
+        <div class="card-title"><span>🏗️ Hierarchical Task Distribution: Tier 0 → Tier 1 → Tier 2 → Tier 3</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          The orchestrator implements a 4-tier hierarchy for task delegation. Tier 0 (Director) decomposes macro goals into domain tasks. Tier 1 (Domain Orchestrators) route to specialized clusters. Tier 2 (Squad Leaders) coordinate worker fleets. Tier 3 (Workers) execute atomic tasks. Cost-aware model routing via Laya ensures optimal model selection per task.
+        </p>
+
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart TD
+    subgraph Tier0["Tier 0 — Director"]
+        D["Director Agent<br/>Macro Goal Decomposition<br/>Cost Budget Allocation"]
+    end
+
+    subgraph Tier1["Tier 1 — Domain Orchestrators"]
+        O1["Code Orchestrator"]
+        O2["Analysis Orchestrator"]
+        O3["Writing Orchestrator"]
+        O4["Governance Orchestrator"]
+    end
+
+    subgraph Tier2["Tier 2 — Squad Leaders"]
+        S1["Squad Leader A<br/>Worker Fleet Coord"]
+        S2["Squad Leader B<br/>Worker Fleet Coord"]
+        S3["Squad Leader C<br/>Worker Fleet Coord"]
+    end
+
+    subgraph Tier3["Tier 3 — Workers (289 slots)"]
+        W1["Worker Agent<br/>LongCat 2.5 (Free)"]
+        W2["Worker Agent<br/>Codex (Budget)"]
+        W3["Worker Agent<br/>Antigravity (Volume)"]
+    end
+
+    D -->|"decompose"| O1
+    D -->|"decompose"| O2
+    D -->|"decompose"| O3
+    D -->|"decompose"| O4
+    O1 -->|"delegate"| S1
+    O2 -->|"delegate"| S1
+    O2 -->|"delegate"| S2
+    O3 -->|"delegate"| S2
+    O4 -->|"delegate"| S3
+    S1 -->|"dispatch"| W1
+    S1 -->|"dispatch"| W2
+    S2 -->|"dispatch"| W2
+    S2 -->|"dispatch"| W3
+    S3 -->|"dispatch"| W3
+          </pre>
+        </div>
+
+        <div class="grid-2" style="margin-top: 24px;">
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--cyan-glow);">Tier Responsibilities</h3>
+            <div class="info-row"><div class="info-dot cyan"></div><div><div class="info-label">Tier 0 — Director</div><div class="info-desc">Receives macro goals, decomposes into domain tasks, allocates cost budgets, monitors global progress</div></div></div>
+            <div class="info-row"><div class="info-dot purple"></div><div><div class="info-label">Tier 1 — Domain Orchestrators</div><div class="info-desc">Route tasks to specialized clusters (code, analysis, writing, governance), enforce domain-specific policies</div></div></div>
+            <div class="info-row"><div class="info-dot emerald"></div><div><div class="info-label">Tier 2 — Squad Leaders</div><div class="info-desc">Coordinate worker fleets, manage wave-based dispatch, handle intra-squad escalation</div></div></div>
+            <div class="info-row"><div class="info-dot amber"></div><div><div class="info-label">Tier 3 — Workers</div><div class="info-desc">Execute atomic tasks using assigned model tier, report results with evidence</div></div></div>
+          </div>
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--purple-glow);">Cost-Aware Model Routing</h3>
+            <div class="info-row"><div class="info-dot cyan"></div><div><div class="info-label">Laya Decision Engine</div><div class="info-desc">Local CPU inference (~33ms, $0.00) — difficulty, domain, needs_tools, is_sensitive</div></div></div>
+            <div class="info-row"><div class="info-dot purple"></div><div><div class="info-label">Auto-Execute Threshold</div><div class="info-desc">difficulty ≤ 1.0, needs_tools &lt; 0.3, is_sensitive &lt; 0.2 → LongCat 2.5 (free)</div></div></div>
+            <div class="info-row"><div class="info-dot emerald"></div><div><div class="info-label">Needs-Review Threshold</div><div class="info-desc">difficulty ≤ 2.0, needs_tools &lt; 0.5, is_sensitive &lt; 0.4 → Codex (budget)</div></div></div>
+            <div class="info-row"><div class="info-dot amber"></div><div><div class="info-label">Needs-Human Threshold</div><div class="info-desc">Above all thresholds → Antigravity (volume) or human escalation</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-title"><span>⚡ Wave-Based Dispatch & Scheduling</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          The scheduler manages 330 agent slots with wave-based parallel dispatch. Waves group slots for coordinated execution with configurable concurrency limits (max 3 concurrent waves, 50 tasks per wave).
+        </p>
+
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart LR
+    subgraph Dispatch["Wave Dispatch Pipeline"]
+        T["Task Queue"] -->|"create_wave"| W1["Wave 1<br/>50 slots"]
+        T -->|"create_wave"| W2["Wave 2<br/>50 slots"]
+        T -->|"create_wave"| W3["Wave 3<br/>50 slots"]
+    end
+
+    subgraph Slots["Slot States"]
+        A["Available"] -->|"acquire"| B["Busy"]
+        B -->|"release"| A
+        B -->|"timeout"| C["Draining"]
+        C -->|"drain"| A
+    end
+
+    subgraph Concurrency["Concurrency Control"]
+        S["Semaphore<br/>max_concurrent_waves=3"] -->|"gate"| W1
+        S -->|"gate"| W2
+        S -->|"gate"| W3
+    end
+
+    W1 -->|"dispatch"| S
+    W2 -->|"dispatch"| S
+    W3 -->|"dispatch"| S
+    S -->|"run"| Slots
+          </pre>
+        </div>
+
+        <div class="grid-3" style="margin-top: 20px;">
+          <div class="stat-card">
+            <div class="stat-label">Slot Distribution</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">1 Director (Tier 0) • 10 Orchestrators (Tier 1) • 30 Squad Leaders (Tier 2) • 289 Workers (Tier 3)</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Wave Configuration</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Default wave size: 50 slots • Max concurrent waves: 3 • Slot timeout: 300s • Drain timeout: 60s</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Auto-Scaling</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Enabled by default • Slots dynamically reserved/released • Wave results aggregated with latency & cost</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Memory & Context -->
+    <div id="tab-memory" class="panel">
+      <div class="glass-card">
+        <div class="card-title"><span>🧠 Memory Hierarchy: Cognee → Hindsight → Nerve → Laya</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          Three-tier memory system with Cognee graph memory as primary, Hindsight for cross-session retrieval, and flat-file fallback. Nerve provides supervision hooks. Laya feeds routing decisions. P0-P4 prioritization with garbage collection ensures optimal memory utilization.
+        </p>
+
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart TD
+    subgraph MemoryTiers["Memory Tiers"]
+        T1["Tier 1: Cognee<br/>Graph Memory<br/>Entity Resolution + Semantic"]
+        T2["Tier 2: Hindsight<br/>Cross-Session Retrieval<br/>Session-Aware Recall"]
+        T3["Tier 3: Flat File<br/>Built-in Fallback<br/>JSON/JSONL Storage"]
+    end
+
+    subgraph Retrieval["Retrieval Strategies"]
+        R1["Semantic<br/>Embedding Similarity"]
+        R2["Keyword<br/>BM25 + TF-IDF"]
+        R3["Graph<br/>Entity Traversal"]
+        R4["Hybrid<br/>Combined Score"]
+    end
+
+    subgraph Supervision["Governance Layer"]
+        N["Nerve Supervision<br/>DoD Enforcement<br/>Context Curation"]
+        L["Laya Router<br/>Difficulty + Domain<br/>Routing Decision"]
+    end
+
+    T1 -->|"fallback"| T2
+    T2 -->|"fallback"| T3
+    T1 -->|"retrieve"| R1
+    T1 -->|"retrieve"| R2
+    T1 -->|"retrieve"| R3
+    T1 -->|"retrieve"| R4
+    N -->|"curate"| T1
+    L -->|"route"| T1
+          </pre>
+        </div>
+
+        <div class="grid-2" style="margin-top: 24px;">
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--cyan-glow);">Memory Tier Details</h3>
+            <div class="info-row"><div class="info-dot cyan"></div><div><div class="info-label">Tier 1 — Cognee Graph Memory</div><div class="info-desc">Primary persistent memory with entity resolution, semantic embeddings, and graph-based relationships</div></div></div>
+            <div class="info-row"><div class="info-dot purple"></div><div><div class="info-label">Tier 2 — Hindsight</div><div class="info-desc">Cross-session retrieval with per-user weighting, session-aware recall, and temporal decay</div></div></div>
+            <div class="info-row"><div class="info-dot emerald"></div><div><div class="info-label">Tier 3 — Flat File Fallback</div><div class="info-desc">JSON/JSONL storage for environments without Cognee, with basic CRUD operations</div></div></div>
+          </div>
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--purple-glow);">Retrieval Strategies</h3>
+            <div class="info-row"><div class="info-dot cyan"></div><div><div class="info-label">Semantic Retrieval</div><div class="info-desc">Embedding-based similarity search using vector distance metrics</div></div></div>
+            <div class="info-row"><div class="info-dot purple"></div><div><div class="info-label">Keyword Retrieval</div><div class="info-desc">BM25 + TF-IDF scoring for exact and partial text matches</div></div></div>
+            <div class="info-row"><div class="info-dot emerald"></div><div><div class="info-label">Graph Retrieval</div><div class="info-desc">Entity traversal and relationship-based memory discovery</div></div></div>
+            <div class="info-row"><div class="info-dot amber"></div><div><div class="info-label">Hybrid Retrieval</div><div class="info-desc">Combined scoring across all strategies with configurable weights</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-title"><span>📋 P0-P4 Prioritization & Garbage Collection</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          Memory entries are scored on a 0.0–1.0 scale and classified into 5 priority tiers. The garbage collector uses composite eviction policies (TTL, LRU, LFU, staleness, relevance) with auto-GC at 90% capacity.
+        </p>
+
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart TD
+    subgraph PriorityTiers["Priority Tiers"]
+        P0["P0: Critical<br/>score ≥ 0.8<br/>Never evict"]
+        P1["P1: High<br/>score 0.6–0.8<br/>Prefer keep"]
+        P2["P2: Medium<br/>score 0.4–0.6<br/>Balanced"]
+        P3["P3: Low<br/>score 0.2–0.4<br/>Evict first"]
+        P4["P4: Dead<br/>score &lt; 0.2<br/>Evict immediately"]
+    end
+
+    subgraph GCPolicies["Eviction Policies"]
+        E1["TTL Expired<br/>Time-to-live exceeded"]
+        E2["LRU Evicted<br/>Least recently used"]
+        E3["LFU Evicted<br/>Least frequently used"]
+        E4["Stale<br/>No access in 24h"]
+        E5["Low Relevance<br/>score &lt; 0.2"]
+    end
+
+    subgraph Scoring["Priority Scoring Components"]
+        S1["Relevance (30%)<br/>Semantic similarity"]
+        S2["Recency (25%)<br/>Exponential decay, 24h half-life"]
+        S3["Frequency (20%)<br/>Log-scaled access count"]
+        S4["User Affinity (15%)<br/>Per-user personalization"]
+        S5["Staleness Penalty<br/>Up to 30% deduction"]
+    end
+
+    S1 -->|"weighted"| P0
+    S2 -->|"weighted"| P0
+    S3 -->|"weighted"| P0
+    S4 -->|"weighted"| P0
+    S5 -->|"penalty"| P4
+    P4 -->|"select"| E1
+    P3 -->|"select"| E2
+    P3 -->|"select"| E3
+    P4 -->|"select"| E4
+    P4 -->|"select"| E5
+          </pre>
+        </div>
+
+        <div class="grid-3" style="margin-top: 20px;">
+          <div class="stat-card">
+            <div class="stat-label">Auto-GC Trigger</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Triggers at 90% capacity (9,000 entries of 10,000 max). Target: evict down to 80% (8,000 entries).</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Decay Half-Life</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">24 hours. Recency score = exp(-age × ln(2) / half_life). Staleness penalty up to 30%.</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Personalization</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Per-user weight profiles with affinity tracking. Weights auto-tune based on interaction history.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-title"><span>🎭 Role-Based Context Filtering</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          Context windows are filtered by role (CEO, Orchestrator, Cluster Leader, Worker) with tiered field access. Compression strategies (truncation, summarization, sliding window) enforce token budgets.
+        </p>
+
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart TD
+    subgraph Roles["Role Hierarchy"]
+        CEO["CEO<br/>Full Access<br/>All fields"]
+        ORCH["Orchestrator<br/>Tier 2<br/>+ Errors, Telemetry"]
+        CL["Cluster Leader<br/>Tier 1<br/>+ Memory, Metadata"]
+        WK["Worker<br/>Tier 0<br/>Basic fields only"]
+    end
+
+    subgraph Fields["Context Fields"]
+        F1["System Prompt"]
+        F2["User Message"]
+        F3["Assistant Message"]
+        F4["Tool Results"]
+        F5["Memory"]
+        F6["Metadata"]
+        F7["Errors"]
+        F8["Telemetry"]
+        F9["Audit Log"]
+        F10["Cross-Session"]
+    end
+
+    CEO -->|"access"| F1
+    CEO -->|"access"| F5
+    CEO -->|"access"| F9
+    CEO -->|"access"| F10
+    ORCH -->|"access"| F1
+    ORCH -->|"access"| F5
+    ORCH -->|"access"| F7
+    ORCH -->|"access"| F8
+    CL -->|"access"| F1
+    CL -->|"access"| F5
+    CL -->|"access"| F6
+    WK -->|"access"| F1
+    WK -->|"access"| F2
+    WK -->|"access"| F3
+    WK -->|"access"| F4
+          </pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: API & Integrations -->
+    <div id="tab-api" class="panel">
+      <div class="glass-card">
+        <div class="card-title"><span>🔌 FastAPI REST Endpoints</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          The harness exposes a FastAPI REST API with endpoints for task routing, execution, agent status, memory operations, cost reporting, and governance checks. All endpoints require authentication via API key, OAuth2 Bearer, or mTLS.
+        </p>
+
+        <div class="grid-2">
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--cyan-glow);">Core Endpoints</h3>
+            <div class="endpoint"><span class="method method-post">POST</span><span>/route</span><span style="color: var(--text-dim); margin-left: auto;">Laya-based task routing</span></div>
+            <div class="endpoint"><span class="method method-post">POST</span><span>/execute</span><span style="color: var(--text-dim); margin-left: auto;">Execute task on agent</span></div>
+            <div class="endpoint"><span class="method method-get">GET</span><span>/status</span><span style="color: var(--text-dim); margin-left: auto;">Real-time agent status</span></div>
+            <div class="endpoint"><span class="method method-post">POST</span><span>/memory/recall</span><span style="color: var(--text-dim); margin-left: auto;">Retrieve memories</span></div>
+            <div class="endpoint"><span class="method method-post">POST</span><span>/memory/remember</span><span style="color: var(--text-dim); margin-left: auto;">Store memory</span></div>
+            <div class="endpoint"><span class="method method-post">POST</span><span>/memory/forget</span><span style="color: var(--text-dim); margin-left: auto;">Delete memories</span></div>
+          </div>
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--purple-glow);">Admin & Reporting</h3>
+            <div class="endpoint"><span class="method method-get">GET</span><span>/cost/report</span><span style="color: var(--text-dim); margin-left: auto;">Cost breakdown report</span></div>
+            <div class="endpoint"><span class="method method-post">POST</span><span>/governance/check</span><span style="color: var(--text-dim); margin-left: auto;">Governance compliance</span></div>
+            <div class="endpoint"><span class="method method-post">POST</span><span>/auth/token</span><span style="color: var(--text-dim); margin-left: auto;">OAuth2 token request</span></div>
+            <div class="endpoint"><span class="method method-post">POST</span><span>/auth/keys</span><span style="color: var(--text-dim); margin-left: auto;">Create API key</span></div>
+            <div class="endpoint"><span class="method method-get">GET</span><span>/auth/keys</span><span style="color: var(--text-dim); margin-left: auto;">List API keys</span></div>
+            <div class="endpoint"><span class="method method-post">POST</span><span>/auth/keys/revoke</span><span style="color: var(--text-dim); margin-left: auto;">Revoke API key</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-title"><span>🔐 Authentication Flow: API Key → OAuth2 + PKCE → mTLS</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          Three-layer authentication with priority: API key (X-API-Key header) → OAuth2 Bearer token → mTLS client certificate. RBAC with 4 roles (admin, operator, viewer, service) and ABAC with scopes and tenant isolation.
+        </p>
+
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart TD
+    subgraph Auth["Authentication Priority"]
+        A1["1. API Key<br/>X-API-Key header<br/>SHA-256 hashed + pepper"]
+        A2["2. OAuth2 Bearer<br/>Authorization header<br/>Token validation"]
+        A3["3. mTLS<br/>Client certificate<br/>Reverse proxy verified"]
+    end
+
+    subgraph OAuth2["OAuth2 + PKCE Flow"]
+        O1["Client Request<br/>grant_type + scope"]
+        O2["PKCE Verification<br/>S256 code_challenge"]
+        O3["Token Issuance<br/>access_token + refresh_token"]
+        O4["Token Validation<br/>Expiry + scope check"]
+    end
+
+    subgraph RBAC["RBAC Roles"]
+        R1["Admin<br/>Full access<br/>All tenants"]
+        R2["Service<br/>read, write, execute, route"]
+        R3["Operator<br/>read, write, execute"]
+        R4["Viewer<br/>read only"]
+    end
+
+    A1 -->|"valid"| RBAC
+    A2 -->|"valid"| RBAC
+    A3 -->|"valid"| RBAC
+    O1 -->|"verify"| O2
+    O2 -->|"issue"| O3
+    O3 -->|"validate"| O4
+    O4 -->|"authorize"| RBAC
+          </pre>
+        </div>
+
+        <div class="grid-3" style="margin-top: 20px;">
+          <div class="stat-card">
+            <div class="stat-label">API Key Security</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">SHA-256 hashed with pepper • HMAC comparison • Expiration support • Tenant isolation</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">OAuth2 Grants</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">client_credentials • authorization_code • refresh_token • PKCE S256</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tenant Isolation</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">ABAC with tenant_id • Admin cross-tenant access • Scope-based permissions</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-title"><span>🔗 Integration Points</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          The harness integrates with 4 external systems via async HTTP clients with health checks, capability discovery, and operation execution.
+        </p>
+
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart TD
+    subgraph Harness["Apex Harness API"]
+        H["FastAPI Server<br/>REST Endpoints<br/>Auth + RBAC"]
+    end
+
+    subgraph Integrations["External Integrations"]
+        I1["ApexGraphSwarm<br/>Graph Intelligence<br/>Multi-Agent Orchestration<br/>Laya Routing"]
+        I2["GRC_Claw<br/>ISO 42001 Governance<br/>Risk Assessment<br/>Compliance Audit"]
+        I3["Apex_ULL<br/>C++20 + Rust + Python<br/>106 Kernel Components<br/>ML Inference + Crypto"]
+        I4["Data Center Commander<br/>DC Lifecycle Mgmt<br/>Provisioning + Capacity<br/>Power + Cooling"]
+    end
+
+    H -->|"route/dispatch"| I1
+    H -->|"governance/check"| I2
+    H -->|"kernel/invoke"| I3
+    H -->|"capacity/provision"| I4
+    I1 -->|"health"| H
+    I2 -->|"health"| H
+    I3 -->|"health"| H
+    I4 -->|"health"| H
+          </pre>
+        </div>
+
+        <div class="grid-2" style="margin-top: 20px;">
+          <div class="stat-card">
+            <div class="stat-label">ApexGraphSwarm Integration</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Operations: route, dispatch, agent_status, graph_query, graph_build. Base URL: localhost:8001</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">GRC_Claw Integration</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Operations: check, risk_assessment, audit, controls, policies. Base URL: localhost:8002</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Apex_ULL Integration</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Operations: invoke, list_components, component_info, benchmark, batch. Base URL: localhost:8003</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Data Center Commander</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Operations: provision, decommission, capacity, power, cooling, network, incident. Base URL: localhost:8004</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Cost & Governance -->
+    <div id="tab-governance" class="panel">
+      <div class="glass-card">
+        <div class="card-title"><span>💰 Budget Enforcement & Cost Tracking</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          Per-call cost tracking with configurable budgets per model. Hard-stop enforcement rejects calls when budgets are exceeded. Alerts fire at 80% threshold with severity escalation at 95%.
+        </p>
+
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart TD
+    subgraph CostFlow["Cost Tracking Flow"]
+        C1["API Call<br/>Token Usage"] -->|"compute"| C2["Cost Calculation<br/>Model Pricing Table"]
+        C2 -->|"check"| C3{"Budget Check<br/>Period + Model"}
+        C3 -->|"pass"| C4["Record Call<br/>Update Totals"]
+        C3 -->|"exceed"| C5["BudgetExceededError<br/>Reject Call"]
+        C4 -->|"alert"| C6["Threshold Check<br/>80% warning"]
+    end
+
+    subgraph Budgets["Default Budgets"]
+        B1["Codex Monthly<br/>$20.00 limit<br/>80% alert threshold"]
+        B2["Codex Daily<br/>$1.00 limit<br/>80% alert threshold"]
+        B3["LongCat 2.5<br/>Free / Unlimited<br/>No budget"]
+        B4["Antigravity<br/>Subscription<br/>No budget"]
+    end
+
+    subgraph Periods["Budget Periods"]
+        P1["Hourly"]
+        P2["Daily"]
+        P3["Monthly"]
+        P4["Total"]
+    end
+
+    C3 -->|"evaluate"| B1
+    C3 -->|"evaluate"| B2
+    B1 -->|"window"| P3
+    B2 -->|"window"| P2
+    C6 -->|"notify"| P1
+          </pre>
+        </div>
+
+        <div class="grid-3" style="margin-top: 20px;">
+          <div class="stat-card">
+            <div class="stat-label">Model Pricing (per 1M tokens)</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">LongCat 2.5: $0.00 (free) • Codex: $1.25/$10.00 • Antigravity: $0.30/$2.50 • GPT-4o: $2.50/$10.00</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Alert Thresholds</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">80% → Warning • 95% → Critical • 100% → Hard stop (reject new calls)</p>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Cost Visibility</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">By model, by tier, by period • Average cost per call • Token usage tracking</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-title"><span>✅ Definition of Done (DoD) & Compliance</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          Nerve supervision enforces Definition of Done with context curation modes (shadow, advisory, enforce). Governance checks validate against ISO 42001, NIST AI RMF, and EU AI Act frameworks.
+        </p>
+
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart TD
+    subgraph DoD["Definition of Done"]
+        D1["Task Assigned<br/>Agent + Model + Tier"]
+        D2["Task Executed<br/>Output + Artifacts"]
+        D3["Evidence Collected<br/>Metrics + Logs"]
+        D4["Cost Recorded<br/>Tokens + USD"]
+        D5["Governance Check<br/>Compliance Score"]
+        D6["Completed / Failed<br/>Audit Trail"]
+    end
+
+    subgraph Curation["Context Curation Modes"]
+        M1["Shadow<br/>Log only<br/>No enforcement"]
+        M2["Advisory<br/>Warn but allow<br/>Override possible"]
+        M3["Enforce<br/>Block violations<br/>Strict mode"]
+    end
+
+    subgraph Frameworks["Governance Frameworks"]
+        F1["ISO 42001<br/>AI Management System"]
+        F2["NIST AI RMF<br/>Risk Management"]
+        F3["EU AI Act<br/>Regulatory Compliance"]
+    end
+
+    D1 -->|"execute"| D2
+    D2 -->|"collect"| D3
+    D3 -->|"record"| D4
+    D4 -->|"validate"| D5
+    D5 -->|"pass"| D6
+    D5 -->|"fail"| D6
+    M1 -->|"monitor"| D5
+    M2 -->|"warn"| D5
+    M3 -->|"block"| D5
+    F1 -->|"check"| D5
+    F2 -->|"check"| D5
+    F3 -->|"check"| D5
+          </pre>
+        </div>
+
+        <div class="grid-2" style="margin-top: 20px;">
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--cyan-glow);">DoD Checklist</h3>
+            <div class="info-row"><div class="info-dot cyan"></div><div><div class="info-label">Assignment</div><div class="info-desc">Task assigned to specific agent with model tier and cost budget</div></div></div>
+            <div class="info-row"><div class="info-dot purple"></div><div><div class="info-label">Execution</div><div class="info-desc">Task executed with output artifacts and performance metrics</div></div></div>
+            <div class="info-row"><div class="info-dot emerald"></div><div><div class="info-label">Evidence</div><div class="info-desc">Execution logs, token usage, and latency metrics collected</div></div></div>
+            <div class="info-row"><div class="info-dot amber"></div><div><div class="info-label">Cost</div><div class="info-desc">Cost recorded against model budget with period tracking</div></div></div>
+            <div class="info-row"><div class="info-dot cyan"></div><div><div class="info-label">Governance</div><div class="info-desc">Compliance check against selected framework with score and findings</div></div></div>
+          </div>
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--purple-glow);">Governance Frameworks</h3>
+            <div class="info-row"><div class="info-dot cyan"></div><div><div class="info-label">ISO 42001</div><div class="info-desc">AI Management System — governance policies, risk assessment, control mapping</div></div></div>
+            <div class="info-row"><div class="info-dot purple"></div><div><div class="info-label">NIST AI RMF</div><div class="info-desc">AI Risk Management Framework — trustworthy AI characteristics and metrics</div></div></div>
+            <div class="info-row"><div class="info-dot emerald"></div><div><div class="info-label">EU AI Act</div><div class="info-desc">Regulatory compliance — risk categorization, transparency, human oversight</div></div></div>
+            <div class="info-row"><div class="info-dot amber"></div><div><div class="info-label">Strict Mode</div><div class="info-desc">When enabled, warnings are treated as violations (fail-closed)</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-title"><span>📈 Cost Report & Alerting</span></div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          The cost tracker provides aggregated summaries with breakdowns by model, tier, and period. Alert handlers can be registered for custom notifications (e.g., Slack, PagerDuty).
+        </p>
+
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart LR
+    subgraph Report["Cost Report"]
+        R1["Total Cost (USD)"] --> R2["By Model"]
+        R1 --> R3["By Tier"]
+        R1 --> R4["By Period"]
+        R2 --> R5["Avg Cost/Call"]
+        R3 --> R6["Avg Tokens/Call"]
+    end
+
+    subgraph Alerts["Alert Handlers"]
+        H1["Slack Notification"]
+        H2["PagerDuty"]
+        H3["Webhook"]
+        H4["Log Only"]
+    end
+
+    subgraph Severity["Severity Levels"]
+        S1["Info<br/>≥ 80%"]
+        S2["Warning<br/>≥ 80%"]
+        S3["Critical<br/>≥ 95%"]
+    end
+
+    R1 -->|"trigger"| S1
+    S1 -->|"escalate"| S2
+    S2 -->|"escalate"| S3
+    S1 -->|"notify"| H1
+    S2 -->|"notify"| H2
+    S3 -->|"notify"| H3
+          </pre>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div><strong>Apex Harness</strong> &copy; 2026 Ahmed Hassan (@AAH20). LLM-Agnostic Harness Engineering.</div>
+      <div>120+ Open-Source Projects • Hierarchical Orchestration • Cost-Aware Routing</div>
+    </footer>
+
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      securityLevel: 'loose',
+      themeVariables: {
+        darkMode: true,
+        background: '#090d16',
+        primaryColor: '#1e293b',
+        primaryTextColor: '#f8fafc',
+        primaryBorderColor: '#06b6d4',
+        lineColor: '#38bdf8',
+        secondaryColor: '#0f172a',
+        tertiaryColor: '#1e1b4b'
+      }
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(tabId));
+      if (targetBtn) targetBtn.classList.add('active');
+      const targetPanel = document.getElementById(tabId);
+      if (targetPanel) targetPanel.classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+Apex Harness — LLM-Agnostic Harness Engineering
+Copyright (C) 2026 Ahmed Hassan (@AAH20)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>.
+
+================================================================================
+THIRD-PARTY DEPENDENCIES
+================================================================================
+
+This project builds upon the following open-source projects, each governed
+by their respective licenses:
+
+- FastAPI (MIT License) — https://github.com/tiangolo/fastapi
+- Pydantic (MIT License) — https://github.com/pydantic/pydantic
+- Uvicorn (BSD-3-Clause) — https://github.com/encode/uvicorn
+- HTTPX (BSD-3-Clause) — https://github.com/encode/httpx
+- Cognee (Apache-2.0) — https://github.com/topoteretes/cognee
+
+================================================================================
+ECOSYSTEM PROJECTS
+================================================================================
+
+Apex Harness integrates with the following @AAH20 projects:
+
+- ApexGraphSwarm — https://github.com/AAH20/ApexGraphSwarm
+- Apex_ULL — https://github.com/AAH20/Apex_ULL
+- GRC_Claw — https://github.com/AAH20/GRC_Claw
+- Data Center Commander — https://github.com/AAH20/Data-Center-Commander
+- Apex Memory Context — https://github.com/AAH20/Apex-Memory-Context
+- hyper-agent-os — https://github.com/AAH20/hyper-agent-os
+- swarm-substrate — https://github.com/AAH20/swarm-substrate
+- agent-immune-kernel — https://github.com/AAH20/agent-immune-kernel
+- agent-trust-fabric — https://github.com/AAH20/agent-trust-fabric
+- ai-cloud-cost-optimization-platform — https://github.com/AAH20/ai-cloud-cost-optimization-platform
+- agentproof-ai-security-scanner — https://github.com/AAH20/agentproof-ai-security-scanner
+- vuln-triage — https://github.com/AAH20/vuln-triage
+- aiops-observability-platform — https://github.com/AAH20/aiops-observability-platform
+- neuro-manifold — https://github.com/AAH20/neuro-manifold
+- neuro-spatial — https://github.com/AAH20/neuro-spatial
+- pqc-enclave — https://github.com/AAH20/pqc-enclave
+- zk-biometrics — https://github.com/AAH20/zk-biometrics
+- cyborg-bench — https://github.com/AAH20/cyborg-bench
+- sky-sentinel — https://github.com/AAH20/sky-sentinel
+- edge-vision-mesh — https://github.com/AAH20/edge-vision-mesh
