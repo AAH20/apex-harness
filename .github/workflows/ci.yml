@@ -23,7 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e . || true
+        pip install -e . || true || true
     - name: Lint with flake8
       run: |
         pip install flake8
